@@ -1,5 +1,6 @@
 import praw, json, os, re, grequests
 from defusedxml import ElementTree 
+from time import sleep
 
 user_agent = ("hpp3_test_0.1")
 
@@ -22,30 +23,31 @@ else:
 comment = None
 
 def reddit_format(text):
-    print text
-    return re.sub("^(?=\w)",'>', text, re.MULTILINE);
+    return re.sub("^(?=\w)",'>', text, flags=re.MULTILINE);
 
 def format(response):
     text = response.text
     et = ElementTree.fromstring(text)
     return reddit_format(et.find('post').find('content').text)
 
-try:
-    for submission in subreddit.get_hot(limit = 10):
-        matches = re.findall("http://www.twitlonger.com/show/(\w+)", submission.url, re.IGNORECASE)
-        matches += re.findall("http://www.twitlonger.com/show/(\w+)", submission.selftext, re.IGNORECASE)
-        if matches:
-            urls = ["http://www.twitlonger.com/api_read/%s" % match for match in matches]
-            rs = (grequests.get(u) for u in urls)
-            responses = grequests.map(rs)
-            txt = '%d Twitlonger %s found.\n\n' % (len(responses), 'post' if len(responses) == 1 else 'posts') + '\n***\n'.join(map(format, responses))
-            if submission.id not in processed:
-                comment = submission.add_comment(txt)
-                processed[submission.id] = comment.permalink
-            else:
-                print "already processed %s" % submission.id
-                comment = r.get_submission(processed[submission.id]).comments[0]
-                comment.edit(txt)
-finally:
-    with open('processed', 'w') as f:
-        json.dump(processed, f)
+while True:
+    try:
+        for submission in subreddit.get_new(limit = 20):
+            matches = re.findall("http://www.twitlonger.com/show/(\w+)", submission.url, re.IGNORECASE)
+            matches += re.findall("http://www.twitlonger.com/show/(\w+)", submission.selftext, re.IGNORECASE)
+            if matches:
+                urls = ["http://www.twitlonger.com/api_read/%s" % match for match in matches]
+                rs = (grequests.get(u) for u in urls)
+                responses = grequests.map(rs)
+                txt = '%d Twitlonger %s found.\n\n' % (len(responses), 'post' if len(responses) == 1 else 'posts') + '\n***\n'.join(map(format, responses))
+                if submission.id not in processed:
+                    comment = submission.add_comment(txt)
+                    processed[submission.id] = comment.permalink
+                else:
+                    print "already processed %s" % submission.id
+                    comment = r.get_submission(processed[submission.id]).comments[0]
+                    comment.edit(txt)
+    finally:
+        with open('processed', 'w') as f:
+            json.dump(processed, f)
+    sleep(60)
