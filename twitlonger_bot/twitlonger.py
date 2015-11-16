@@ -39,12 +39,11 @@ while True:
                 urls = ["http://www.twitlonger.com/api_read/%s" % match for match in matches]
                 rs = (grequests.get(u) for u in urls)
                 responses = grequests.map(rs)
-                txt = '%d Twitlonger %s found.\n\n' % (len(responses), 'post' if len(responses) == 1 else 'posts') + '\n***\n'.join(map(format, responses))
+                txt = '%d Twitlonger %s found.\n\n' % (len(responses), 'post' if len(responses) == 1 else 'posts') + '\n***\n'.join(map(format, responses)) + '\n***\nThis comment was created by a bot.  \n[Source Code](https://github.com/jsshao/reddit_bots)'
                 if submission.id not in processed:
                     comment = submission.add_comment(txt)
                     processed[submission.id] = comment.permalink
                 else:
-                    print "already processed %s" % submission.id
                     comment = r.get_submission(processed[submission.id]).comments[0]
                     comment.edit(txt)
     finally:
