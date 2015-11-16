@@ -18,7 +18,7 @@ else:
        posts_replied_to = filter(None, posts_replied_to)
 
 subreddit = r.get_subreddit('sandboxbox')
-for submission in subreddit.get_hot(limit=5):
+for submission in subreddit.get_new():
 	if submission.id not in posts_replied_to:
 		if 'youtube.com' in submission.url:
 			commentObj = submission
@@ -26,15 +26,24 @@ for submission in subreddit.get_hot(limit=5):
 			first = True;
 			comment = "";
 			for caption in captionsOut:
-				temp = comment
 				comment += caption["time"] + ":	" + caption["text"]	+ "\n\n"
-				if len(comment) > 10000: 
+				if len(comment) > 8000: 
+					comment += "\n\n ***\n\nThis message was created by a bot\n\n[\[Source Code\]](https://github.com/jsshao/reddit_bots)"
 					if (first):
-						commentObj = commentObj.add_comment(temp)
 						first = False
+						commentObj = commentObj.add_comment(comment)
 					else:
-						commentObj = commentObj.reply(temp)
-					comment = caption["time"] + ":	" + caption["text"]	+ "\n\n"
+						commentObj = commentObj.reply(comment)
+					comment = ""
+			
+			if comment != "":
+				comment += "\n\n ***\n\nThis message was created by a bot\n\n[\[Source Code\]](https://github.com/jsshao/reddit_bots)"
+				if (first):
+					first = False
+					commentObj = commentObj.add_comment(comment)
+				else:
+					commentObj = commentObj.reply(comment)
+			
 			posts_replied_to.append(submission.id)
 
 with open("posts_replied_to.txt", "w") as f:
