@@ -16,11 +16,17 @@ def transcribe(submission, img):
     text = image_to_string(im_resized).split('\n')
     text = [">" + i + " " for i in text]
     text = '\n'.join(text)
-    text = "This transcription was performed by OCR bot\n" + text
-    text += "\n\n ***\n\nThis message was created by a bot\n\n"
-    text += "[\[Source Code\]](https://github.com/jsshao/reddit_bots)"
-    
-    submission.add_comment(text)
+    return text
+
+def parse_url(url, img_list):
+    if url.endswith(".png") or url.endswith(".jpg"):
+        file = cStringIO.StringIO(urllib.urlopen(url).read())
+        img = Image.open(file)
+        img_list.append(img)  
+    elif "gyazo.com" in url:
+        file = cStringIO.StringIO(urllib.urlopen(url + ".png").read())
+        img = Image.open(file)
+        img_list.append(img)  
 
 if not  os.path.isfile("credentials.py"):
     print "You must create a config file with your username and password."
@@ -41,18 +47,29 @@ else:
        history = history.split("\n")
        history = filter(None, history)
 
-for submission in subreddit.get_hot():
+for submission in subreddit.get_new():
     if submission.id in history:
         continue
 
-    if submission.url.endswith(".png") or submission.url.endswith(".jpg"):
-        file = cStringIO.StringIO(urllib.urlopen(submission.url).read())
-        img = Image.open(file)
-        transcribe(submission, img)
-    elif "gyazo.com" in submission.url:
-        file = cStringIO.StringIO(urllib.urlopen(submission.url + ".png").read())
-        img = Image.open(file)
-        transcribe(submission, img)
+    img_list = []
+    parse_url(submission.url, img_list)
+    matches = re.findall("((http|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)", submission.selftext, re.IGNORECASE)
+
+    matches = [i[0] for i in matches]
+    for url in matches:
+        parse_url(url, img_list)
+
+    text = "There were " + str(len(img_list)) + " image[s] found in this post.\n\n"
+    text += "This transcription was performed by OCR bot\n\n\n\n"
+    for img in img_list:
+        text += transcribe(submission, img)
+        text += "\n\n ***\n\n"
+
+    text += "This message was created by a bot\n\n"
+    text += "[\[Source Code\]](https://github.com/jsshao/reddit_bots)"
+
+    if len(img_list) != 0:
+        submission.add_comment(text)
 
     history.append(submission.id)
 
