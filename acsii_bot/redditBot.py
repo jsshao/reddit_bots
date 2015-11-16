@@ -1,3 +1,5 @@
+# Using img2txt.py: Copyright (c) 2013 - 2015, hit9
+
 import praw
 import pdb
 import re
