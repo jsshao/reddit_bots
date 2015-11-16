@@ -19,8 +19,11 @@ else:
     with open('processed', 'r') as f:
         processed = json.load(f)
     
-
 comment = None
+
+def reddit_format(text):
+    print text
+    return re.sub("^(?=\w)",'>', text, re.MULTILINE);
 
 def format(response):
     text = response.text
@@ -35,14 +38,14 @@ try:
             urls = ["http://www.twitlonger.com/api_read/%s" % match for match in matches]
             rs = (grequests.get(u) for u in urls)
             responses = grequests.map(rs)
-            print map(format, responses)
-            # if submission.id not in processed:
-            #     comment = submission.add_comment("imgur test")
-            #     processed[submission.id] = comment.permalink
-            # else:
-            #     print "already processed %s" % submission.id
-            #     comment = r.get_submission(processed[submission.id]).comments[0]
-            #     comment.edit(str(comment) + " edited")
+            txt = '%d Twitlonger %s found.\n\n' % (len(responses), 'post' if len(responses) == 1 else 'posts') + '\n***\n'.join(map(format, responses))
+            if submission.id not in processed:
+                comment = submission.add_comment(txt)
+                processed[submission.id] = comment.permalink
+            else:
+                print "already processed %s" % submission.id
+                comment = r.get_submission(processed[submission.id]).comments[0]
+                comment.edit(txt)
 finally:
     with open('processed', 'w') as f:
         json.dump(processed, f)
